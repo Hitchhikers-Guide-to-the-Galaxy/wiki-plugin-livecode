@@ -18,11 +18,22 @@
 // collapses a running widget back to its poster.
 
 const ENGINE_MB = 6.4
+const SHARED_SHELL = 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html'
 
 export const parse = (text) => {
-  const spec = { stack: null, title: null, height: 420, boot: 'auto', fullscreen: 'fixed', name: null }
-  for (const raw of (text || '').split('\n')) {
-    const m = raw.trim().match(/^([A-Z]+):?\s+(.*)$/)
+  const spec = { stack: null, title: null, height: 420, boot: 'auto', fullscreen: 'fixed', name: null, script: null }
+  const lines = (text || '').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    // a script-only stack begins `script "Name"` — everything from that
+    // line on is the stack's script, booted directly by the shared shell
+    const sm = lines[i].match(/^\s*script\s+"([^"]+)"/)
+    if (sm) {
+      spec.script = lines.slice(i).join('\n')
+      if (!spec.name) spec.name = sm[1]
+      if (!spec.title) spec.title = sm[1]
+      break
+    }
+    const m = lines[i].trim().match(/^([A-Z]+):?\s+(.*)$/)
     if (!m) continue
     const [, cmd, restRaw] = m
     const rest = restRaw.trim()
@@ -35,6 +46,7 @@ export const parse = (text) => {
       spec.fullscreen = ['fixed', 'scale', 'resize'].includes(mode) ? mode : 'fixed'
     } else if (cmd === 'NAME') spec.name = rest
   }
+  if (spec.script && !spec.stack) spec.stack = SHARED_SHELL
   if (!spec.title && spec.stack) {
     const leaf = spec.stack.split('/').pop() || ''
     spec.title = (leaf.split('?')[0] || '').replace(/\.html?$/i, '') || 'Livecode stack'
@@ -74,6 +86,9 @@ const boot = (widget, poster, spec, url) => {
   if (spec.name) {
     url += '&stack=' + encodeURIComponent(spec.name)
   }
+  if (spec.script) {
+    url += '&boot=script'
+  }
 
   const bar = document.createElement('div')
   bar.className = 'livecode-bar'
@@ -105,6 +120,10 @@ const boot = (widget, poster, spec, url) => {
 
   const onMessage = (event) => {
     if (!widget.__livecode || event.source !== frame.contentWindow) return
+    const d = event.data && event.data.livecode
+    if (d && d.ready === 'script' && spec.script) {
+      frame.contentWindow.postMessage({ livecode: { bootScript: spec.script } }, '*')
+    }
     widget.dataset.lastMessage = JSON.stringify(event.data)
     if (window.$) window.$(widget).trigger('livecodeMessage', [event.data])
   }
@@ -149,7 +168,7 @@ export const emit = (div, item) => {
     'border-radius:6px;padding:14px 16px;background:linear-gradient(135deg,#fff7ee,#ffffff)">' +
     `<div style="font-weight:bold;font-size:15px">&#9654; ${escapeHtml(spec.title)}</div>` +
     `<div style="font-size:12px;color:#888;margin-top:4px">Livecode wasm &mdash; ` +
-    `loads the ${ENGINE_MB} MB engine when run</div>` +
+    `${spec.script ? "runs this item's script with" : 'loads'} the ${ENGINE_MB} MB engine</div>` +
     '</div></div>')
 }
 

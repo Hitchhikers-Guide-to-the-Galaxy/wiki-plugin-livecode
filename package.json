@@ -1,6 +1,6 @@
 {
   "name": "wiki-plugin-livecode",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Run a Livecode wasm stack as a lazy wiki widget — poster card, click to boot, one live widget at a time, clean teardown.",
   "type": "module",
   "main": "client/livecode.js",

@@ -11,6 +11,7 @@ test('full DSL parses', () => {
     boot: 'auto',
     fullscreen: 'scale',
     name: 'Hexagon',
+    script: null,
   })
 })
 
@@ -46,4 +47,20 @@ test('optional colon and junk lines tolerated', () => {
 test('empty text yields no stack', () => {
   assert.equal(parse('').stack, null)
   assert.equal(parse(undefined).stack, null)
+})
+
+test('script only stack text is detected', () => {
+  const spec = parse('script "Simple Test"\non openstack\n   create button "Hello World"\nend openstack')
+  assert.equal(spec.name, 'Simple Test')
+  assert.equal(spec.title, 'Simple Test')
+  assert.ok(spec.script.startsWith('script "Simple Test"'))
+  assert.equal(spec.stack, 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html')
+})
+
+test('commands before the script line still apply', () => {
+  const spec = parse('HEIGHT 500\nTITLE My Demo\nscript "X"\non openstack\nend openstack')
+  assert.equal(spec.height, 500)
+  assert.equal(spec.title, 'My Demo')
+  assert.equal(spec.name, 'X')
+  assert.ok(spec.script.startsWith('script "X"'))
 })

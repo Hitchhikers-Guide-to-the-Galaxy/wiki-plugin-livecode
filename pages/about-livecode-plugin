@@ -18,8 +18,18 @@
     },
     {
       "type": "markdown",
+      "id": "e5b09c3a71d8f246",
+      "text": "# Script only stacks\nAn item whose text is a script only stack — beginning `script \"Name\"` — boots that script directly: the shell builds the standalone payload in the browser from the item text, so no export is needed. Command lines above the script line still apply, and the stack's name becomes the widget's NAME for the JavaScript bridge. For now the script runs aboard a small host stack, until a blank host is exported. Live:"
+    },
+    {
+      "type": "livecode",
+      "id": "9c2e6f80b5a3d417",
+      "text": "script \"Simple Test\"\non openstack\n   create button \"Hello World\"\nend openstack"
+    },
+    {
+      "type": "markdown",
       "id": "5c8f0a1d9e2b4736",
-      "text": "# Design\nDoor two of [[Three Livecode Doors]]: one shared engine pair per Livecode version is cached by the browser, so many widgets cost one engine download plus a small `standalone.zip` each. Messages the stack posts surface as a `livecodeMessage` event on the widget — the grounding for the [[WikiScript]] stage dialect. See [[Livecode Wasm]] for the export anatomy and the trimmed shell."
+      "text": "# Design\nDoor two of [[Three Livecode Doors]]: one shared engine pair per Livecode version is cached by the browser, so many widgets cost one engine download plus a small `standalone.zip` each. Messages the stack posts surface as a `livecodeMessage` event on the widget — the grounding for the [[WikiScript]] stage dialect. See [[Livecode Wasm]] for the export anatomy and the trimmed shell, and [[Livecode Wasm Windows]] for the script boot design."
     }
   ],
   "journal": [

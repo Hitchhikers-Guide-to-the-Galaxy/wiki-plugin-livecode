@@ -1,0 +1,31 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { parse } from '../src/client/livecode.js'
+
+test('full DSL parses', () => {
+  const spec = parse('STACK wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 640\nBOOT auto')
+  assert.deepEqual(spec, {
+    stack: 'wasm/Hexagon/Hexagon.html',
+    title: 'Hexagon',
+    height: 640,
+    boot: 'auto',
+  })
+})
+
+test('title defaults to the file name', () => {
+  const spec = parse('STACK https://wasm.livecode.wiki/assets/wasm/Wasm/Wasm.html')
+  assert.equal(spec.title, 'Wasm')
+  assert.equal(spec.height, 420)
+  assert.equal(spec.boot, 'click')
+})
+
+test('optional colon and junk lines tolerated', () => {
+  const spec = parse('STACK: wasm/Panel/Panel.html\nnot a command\nHEIGHT: abc')
+  assert.equal(spec.stack, 'wasm/Panel/Panel.html')
+  assert.equal(spec.height, 420)
+})
+
+test('empty text yields no stack', () => {
+  assert.equal(parse('').stack, null)
+  assert.equal(parse(undefined).stack, null)
+})

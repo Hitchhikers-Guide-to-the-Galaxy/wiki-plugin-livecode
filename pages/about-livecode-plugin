@@ -1,0 +1,43 @@
+{
+  "title": "About Livecode Plugin",
+  "story": [
+    {
+      "type": "markdown",
+      "id": "bb6d3678f2754a6c",
+      "text": "The Livecode plugin runs a Livecode wasm stack as a lazy wiki widget. A `livecode` item renders a light poster card; clicking it boots the stack's HTML5 standalone in an iframe. The engine is about 6.4 MB of wasm plus real runtime memory, so at most one widget is live at a time, and a watchdog tears the frame down when the item leaves the lineup."
+    },
+    {
+      "type": "livecode",
+      "id": "3b8ba788403d6699",
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 420"
+    },
+    {
+      "type": "markdown",
+      "id": "4b7e9d2c8f0a3615",
+      "text": "# Commands\nUPPERCASE first word, optional colon, one per line:\n\n- STACK — the standalone's shell page: absolute `https://...` or a path relative to the item's origin site\n- TITLE — the poster label; defaults to the shell file name\n- HEIGHT — iframe height in pixels; defaults to 420\n- BOOT — `click` (default) or `auto`; auto boots on render, use sparingly"
+    },
+    {
+      "type": "markdown",
+      "id": "5c8f0a1d9e2b4736",
+      "text": "# Design\nDoor two of [[Three Livecode Doors]]: one shared engine pair per Livecode version is cached by the browser, so many widgets cost one engine download plus a small `standalone.zip` each. Messages the stack posts surface as a `livecodeMessage` event on the widget — the grounding for the [[WikiScript]] stage dialect. See [[Livecode Wasm]] for the export anatomy and the trimmed shell."
+    }
+  ],
+  "journal": [
+    {
+      "type": "create",
+      "item": {
+        "title": "About Livecode Plugin",
+        "story": [
+          {
+            "type": "markdown",
+            "id": "bb6d3678f2754a6c",
+            "text": "The Livecode plugin runs a Livecode wasm stack as a lazy wiki widget. A `livecode` item renders a light poster card; clicking it boots the stack's HTML5 standalone in an iframe. The engine is about 6.4 MB of wasm plus real runtime memory, so at most one widget is live at a time, and a watchdog tears the frame down when the item leaves the lineup."
+          }
+        ]
+      },
+      "date": 1784390165000,
+      "provenance": "Authored by an AI agent — Claude Code (claude-fable-5) via the [[fedwiki-create-plugin]] skill. [https://claude.com/claude-code Claude Code]"
+    }
+  ],
+  "plugin": "livecode"
+}

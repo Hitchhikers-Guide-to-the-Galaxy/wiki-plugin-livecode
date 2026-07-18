@@ -1,4 +1,4 @@
-// wiki-plugin-livecode — Livecode wasm stacks as lazy wiki widgets.
+// wiki-plugin-livecode — Livecode wasm stacks as wiki widgets.
 //
 // Item text DSL (UPPERCASE commands, per the house fedwiki-dsl convention):
 //
@@ -6,18 +6,21 @@
 //   STACK https://site/assets/.../x.html   or absolute
 //   TITLE Hexagon                          poster label (default: file name)
 //   HEIGHT 420                             iframe height in px (default 420)
-//   BOOT click                             click (default) or auto
+//   BOOT auto                              auto (default) or click
+//   FULLSCREEN fixed                       fixed (default), scale, or resize
+//   NAME MyStack                           stack name for the JS bridge
 //
-// Design (door two of Three Livecode Doors): the engine is ~6.4 MB of wasm
-// plus real runtime memory per instance, so widgets render as a light poster
-// card and boot only on request; at most one widget is live at a time; a
-// watchdog tears the frame down when the item leaves the lineup (fedwiki has
-// no plugin dispose hook — the htv pattern).
+// Design (door two of Three Livecode Doors): a livecode item loads and
+// displays its stack by default. BOOT click opts a widget into a light
+// collapsible poster that boots on demand. Every widget runs independently;
+// a watchdog tears a frame down when its item leaves the lineup (fedwiki
+// has no plugin dispose hook — the htv pattern), and the stop control
+// collapses a running widget back to its poster.
 
 const ENGINE_MB = 6.4
 
 export const parse = (text) => {
-  const spec = { stack: null, title: null, height: 420, boot: 'click', fullscreen: 'fixed', name: null }
+  const spec = { stack: null, title: null, height: 420, boot: 'auto', fullscreen: 'fixed', name: null }
   for (const raw of (text || '').split('\n')) {
     const m = raw.trim().match(/^([A-Z]+):?\s+(.*)$/)
     if (!m) continue
@@ -26,7 +29,7 @@ export const parse = (text) => {
     if (cmd === 'STACK') spec.stack = rest
     else if (cmd === 'TITLE') spec.title = rest
     else if (cmd === 'HEIGHT') spec.height = parseInt(rest, 10) || spec.height
-    else if (cmd === 'BOOT') spec.boot = rest.toLowerCase() === 'auto' ? 'auto' : 'click'
+    else if (cmd === 'BOOT') spec.boot = rest.toLowerCase() === 'click' ? 'click' : 'auto'
     else if (cmd === 'FULLSCREEN') {
       const mode = rest.toLowerCase()
       spec.fullscreen = ['fixed', 'scale', 'resize'].includes(mode) ? mode : 'fixed'
@@ -49,23 +52,22 @@ const resolveUrl = (div, stack) => {
   return `//${site}/${stack.replace(/^\//, '')}`
 }
 
-// ---- one live widget at a time ----------------------------------------
+// ---- per-widget lifecycle ---------------------------------------------
 
-let live = null
-
-const stopLive = () => {
-  if (!live) return
-  clearInterval(live.watch)
-  window.removeEventListener('message', live.onMessage)
-  document.removeEventListener('fullscreenchange', live.onFsChange)
-  live.frame.remove()
-  live.bar.remove()
-  live.poster.style.display = ''
-  live = null
+const stopWidget = (widget) => {
+  const inst = widget.__livecode
+  if (!inst) return
+  clearInterval(inst.watch)
+  window.removeEventListener('message', inst.onMessage)
+  document.removeEventListener('fullscreenchange', inst.onFsChange)
+  inst.frame.remove()
+  inst.bar.remove()
+  inst.poster.style.display = ''
+  widget.__livecode = null
 }
 
 const boot = (widget, poster, spec, url) => {
-  stopLive()
+  if (widget.__livecode) return
 
   // arm the shell's fullscreen mode from load — deterministic, no message race
   url += (url.includes('?') ? '&' : '?') + 'fs=' + spec.fullscreen
@@ -102,32 +104,32 @@ const boot = (widget, poster, spec, url) => {
   }
 
   const onMessage = (event) => {
-    if (!live || event.source !== frame.contentWindow) return
+    if (!widget.__livecode || event.source !== frame.contentWindow) return
     widget.dataset.lastMessage = JSON.stringify(event.data)
     if (window.$) window.$(widget).trigger('livecodeMessage', [event.data])
   }
   window.addEventListener('message', onMessage)
 
   const onFsChange = () => {
-    if (!live) return
+    if (!widget.__livecode) return
     if (document.fullscreenElement === frame) tell('fullscreen')
-    else tell('fullscreenExit')
+    else if (!document.fullscreenElement) tell('fullscreenExit')
   }
   document.addEventListener('fullscreenchange', onFsChange)
 
   // watchdog: fedwiki never tells a plugin its item left the lineup
   const watch = setInterval(() => {
-    if (!document.body.contains(widget)) stopLive()
+    if (!document.body.contains(widget)) stopWidget(widget)
   }, 4000)
 
   poster.style.display = 'none'
   widget.appendChild(bar)
   widget.appendChild(frame)
-  bar.querySelector('.livecode-stop').addEventListener('click', stopLive)
+  bar.querySelector('.livecode-stop').addEventListener('click', () => stopWidget(widget))
   bar.querySelector('.livecode-full').addEventListener('click', () => {
     if (frame.requestFullscreen) frame.requestFullscreen()
   })
-  live = { widget, poster, frame, bar, watch, onMessage, onFsChange }
+  widget.__livecode = { poster, frame, bar, watch, onMessage, onFsChange }
 }
 
 // ---- fedwiki plugin surface -------------------------------------------
@@ -138,7 +140,7 @@ export const emit = (div, item) => {
     div.html(
       '<div class="livecode-widget" style="border:1px dashed #ccc;border-radius:6px;' +
       'padding:12px;color:#888;font-size:13px">livecode &mdash; no STACK given. ' +
-      'Double click to edit, e.g.<br><code>STACK https://wasm.livecode.wiki/assets/wasm/Hexagon/Hexagon.html</code></div>')
+      'Double click to edit, e.g.<br><code>STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=hexagon.zip</code></div>')
     return
   }
   div.html(

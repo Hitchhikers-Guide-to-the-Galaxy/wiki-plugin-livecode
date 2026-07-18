@@ -9,22 +9,22 @@
     {
       "type": "livecode",
       "id": "1a5e83c7d9f04b26",
-      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=hexagon.zip\nTITLE Hexagon\nHEIGHT 460"
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=hexagon.zip\nTITLE Hexagon\nHEIGHT 460\nBOOT click"
     },
     {
       "type": "livecode",
       "id": "7b2c60e9a4d8135f",
-      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=panel.zip\nTITLE Panel\nHEIGHT 460"
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=panel.zip\nTITLE Panel\nHEIGHT 460\nBOOT click"
     },
     {
       "type": "livecode",
       "id": "e8f1472b90c5d63a",
-      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=svg.zip\nTITLE Svg\nHEIGHT 460\nFULLSCREEN scale"
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=svg.zip\nTITLE Svg\nHEIGHT 460\nFULLSCREEN scale\nBOOT click"
     },
     {
       "type": "markdown",
       "id": "52a9d6c48e07b3f1",
-      "text": "One live widget at a time is plugin policy — stop one, boot the next, and feel the switch cost: after the first boot it is the zip alone. The Hexagon is 85 KB, the Svg 166 KB, the Panel 248 KB. The widget on [[About Livecode Plugin]] uses the same shared shell, so the cache carries across pages too.\n\n- [https://wasm.livecode.wiki/many-wasm-widgets.html Many Wasm Widgets] — the measurements and the lineup story"
+      "text": "These three carry `BOOT click` so the network story stays legible — boot them one at a time and watch: after the first boot each costs its zip alone. The Hexagon is 85 KB, the Svg 166 KB, the Panel 248 KB. Widgets without `BOOT click` simply load and display where they stand. The widget on [[About Livecode Plugin]] uses the same shared shell, so the cache carries across pages too.\n\n- [https://wasm.livecode.wiki/many-wasm-widgets.html Many Wasm Widgets] — the measurements and the lineup story"
     }
   ],
   "journal": [

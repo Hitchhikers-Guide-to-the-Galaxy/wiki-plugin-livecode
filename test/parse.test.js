@@ -25,11 +25,16 @@ test('title default strips query strings', () => {
   assert.equal(spec.title, 'stack')
 })
 
-test('title defaults to the file name', () => {
+test('title defaults to the file name and widgets load by default', () => {
   const spec = parse('STACK https://wasm.livecode.wiki/assets/wasm/Wasm/Wasm.html')
   assert.equal(spec.title, 'Wasm')
   assert.equal(spec.height, 420)
-  assert.equal(spec.boot, 'click')
+  assert.equal(spec.boot, 'auto')
+})
+
+test('BOOT click opts into the collapsible poster', () => {
+  assert.equal(parse('STACK a.html\nBOOT click').boot, 'click')
+  assert.equal(parse('STACK a.html\nBOOT nonsense').boot, 'auto')
 })
 
 test('optional colon and junk lines tolerated', () => {

@@ -4,7 +4,7 @@
     {
       "type": "markdown",
       "id": "bb6d3678f2754a6c",
-      "text": "The Livecode plugin runs a Livecode wasm stack as a lazy wiki widget. A `livecode` item renders a light poster card; clicking it boots the stack's HTML5 standalone in an iframe. The engine is about 6.4 MB of wasm plus real runtime memory, so at most one widget is live at a time, and a watchdog tears the frame down when the item leaves the lineup."
+      "text": "The Livecode plugin runs a Livecode wasm stack as a wiki widget. A `livecode` item loads and displays its stack by default; add `BOOT click` for a collapsible poster card that boots on demand. Every widget runs independently — the stop control collapses a running widget back to its poster, and a watchdog tears a frame down when its item leaves the lineup."
     },
     {
       "type": "livecode",
@@ -14,7 +14,7 @@
     {
       "type": "markdown",
       "id": "4b7e9d2c8f0a3615",
-      "text": "# Commands\nUPPERCASE first word, optional colon, one per line:\n\n- STACK — the standalone's shell page: absolute `https://...` or a path relative to the item's origin site\n- TITLE — the poster label; defaults to the shell file name\n- HEIGHT — iframe height in pixels; defaults to 420\n- BOOT — `click` (default) or `auto`; auto boots on render, use sparingly\n- FULLSCREEN — `fixed` (default), `scale`, or `resize`; how the stack behaves when the full control is used — see [[Full Screen Wasm]]\n- NAME — the stack's name, needed only by `resize` mode for the JavaScript bridge call"
+      "text": "# Commands\nUPPERCASE first word, optional colon, one per line:\n\n- STACK — the standalone's shell page: absolute `https://...` or a path relative to the item's origin site\n- TITLE — the poster label; defaults to the shell file name\n- HEIGHT — iframe height in pixels; defaults to 420\n- BOOT — `auto` (default) loads and displays on render; `click` shows a collapsible poster instead\n- FULLSCREEN — `fixed` (default), `scale`, or `resize`; how the stack behaves when the full control is used — see [[Full Screen Wasm]]\n- NAME — the stack's name, needed only by `resize` mode for the JavaScript bridge call"
     },
     {
       "type": "markdown",
@@ -31,7 +31,7 @@
           {
             "type": "markdown",
             "id": "bb6d3678f2754a6c",
-            "text": "The Livecode plugin runs a Livecode wasm stack as a lazy wiki widget. A `livecode` item renders a light poster card; clicking it boots the stack's HTML5 standalone in an iframe. The engine is about 6.4 MB of wasm plus real runtime memory, so at most one widget is live at a time, and a watchdog tears the frame down when the item leaves the lineup."
+            "text": "The Livecode plugin runs a Livecode wasm stack as a wiki widget. A `livecode` item loads and displays its stack by default; add `BOOT click` for a collapsible poster card that boots on demand. Every widget runs independently — the stop control collapses a running widget back to its poster, and a watchdog tears a frame down when its item leaves the lineup."
           }
         ]
       },

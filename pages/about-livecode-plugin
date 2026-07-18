@@ -9,7 +9,7 @@
     {
       "type": "livecode",
       "id": "3b8ba788403d6699",
-      "text": "STACK https://wasm.livecode.wiki/assets/wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 420"
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=hexagon.zip\nTITLE Hexagon\nHEIGHT 460"
     },
     {
       "type": "markdown",

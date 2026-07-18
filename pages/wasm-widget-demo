@@ -1,0 +1,48 @@
+{
+  "title": "Wasm Widget Demo",
+  "story": [
+    {
+      "type": "markdown",
+      "id": "c3d94a71e5b2860f",
+      "text": "Several Livecode widgets, one engine. Each item below boots a different stack through the shared shell at `wasm.livecode.wiki/assets/wasm/shared/` — the engine pair, the icu data and the shell live at one URL each, so the browser pays for them once. Boot the first widget and watch the network: 7.2 MB, measured. Boot the next: only its stack zip."
+    },
+    {
+      "type": "livecode",
+      "id": "1a5e83c7d9f04b26",
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=hexagon.zip\nTITLE Hexagon\nHEIGHT 460"
+    },
+    {
+      "type": "livecode",
+      "id": "7b2c60e9a4d8135f",
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=panel.zip\nTITLE Panel\nHEIGHT 460"
+    },
+    {
+      "type": "livecode",
+      "id": "e8f1472b90c5d63a",
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=svg.zip\nTITLE Svg\nHEIGHT 460"
+    },
+    {
+      "type": "markdown",
+      "id": "52a9d6c48e07b3f1",
+      "text": "One live widget at a time is plugin policy — stop one, boot the next, and feel the switch cost: after the first boot it is the zip alone. The Hexagon is 85 KB, the Svg 166 KB, the Panel 248 KB. The widget on [[About Livecode Plugin]] uses the same shared shell, so the cache carries across pages too.\n\n- [https://wasm.livecode.wiki/many-wasm-widgets.html Many Wasm Widgets] — the measurements and the lineup story"
+    }
+  ],
+  "journal": [
+    {
+      "type": "create",
+      "item": {
+        "title": "Wasm Widget Demo",
+        "story": [
+          {
+            "type": "markdown",
+            "id": "c3d94a71e5b2860f",
+            "text": "Several Livecode widgets, one engine. Each item below boots a different stack through the shared shell at `wasm.livecode.wiki/assets/wasm/shared/` — the engine pair, the icu data and the shell live at one URL each, so the browser pays for them once. Boot the first widget and watch the network: 7.2 MB, measured. Boot the next: only its stack zip."
+          }
+        ]
+      },
+      "date": 1784390165000,
+      "provenance": "Authored by an AI agent — Claude Code (claude-fable-5) via the [[fedwiki-create-plugin]] skill. [https://claude.com/claude-code Claude Code]"
+    }
+  ],
+  "plugin": "livecode"
+}

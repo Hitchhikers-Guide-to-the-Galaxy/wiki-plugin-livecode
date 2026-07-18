@@ -19,7 +19,7 @@
     {
       "type": "livecode",
       "id": "e8f1472b90c5d63a",
-      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=svg.zip\nTITLE Svg\nHEIGHT 460"
+      "text": "STACK https://wasm.livecode.wiki/assets/wasm/shared/stack.html?zip=svg.zip\nTITLE Svg\nHEIGHT 460\nFULLSCREEN scale"
     },
     {
       "type": "markdown",

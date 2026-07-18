@@ -3,13 +3,26 @@ import assert from 'node:assert/strict'
 import { parse } from '../src/client/livecode.js'
 
 test('full DSL parses', () => {
-  const spec = parse('STACK wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 640\nBOOT auto')
+  const spec = parse('STACK wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 640\nBOOT auto\nFULLSCREEN scale\nNAME Hexagon')
   assert.deepEqual(spec, {
     stack: 'wasm/Hexagon/Hexagon.html',
     title: 'Hexagon',
     height: 640,
     boot: 'auto',
+    fullscreen: 'scale',
+    name: 'Hexagon',
   })
+})
+
+test('fullscreen defaults to fixed and rejects junk modes', () => {
+  assert.equal(parse('STACK a.html').fullscreen, 'fixed')
+  assert.equal(parse('STACK a.html\nFULLSCREEN sideways').fullscreen, 'fixed')
+  assert.equal(parse('STACK a.html\nFULLSCREEN resize').fullscreen, 'resize')
+})
+
+test('title default strips query strings', () => {
+  const spec = parse('STACK https://x/shared/stack.html?zip=panel.zip')
+  assert.equal(spec.title, 'stack')
 })
 
 test('title defaults to the file name', () => {

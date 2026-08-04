@@ -9,6 +9,23 @@
 //   BOOT auto                              auto (default) or click
 //   FULLSCREEN fixed                       fixed (default), scale, or resize
 //   NAME MyStack                           stack name for the JS bridge
+//   WIDTH full                             break out of the column: full (page
+//                                          width) or a pixel number (default:
+//                                          column width). The stack reads its
+//                                          real size from window.innerWidth.
+//   TRIPTYCH a | b | c                     turnkey mode: one engine draws three
+//                                          labelled columns (default Left |
+//                                          Centre | Right), sized to the window.
+//   COLUMNS a | b | c                      the three column labels for TRIPTYCH.
+//   TRANSPARENT                            render the stack with a transparent
+//                                          background (opt-in ?bg=transparent on
+//                                          the shell) so the page behind shows
+//                                          through. The stack must leave its
+//                                          card background empty.
+//   BEHIND <url>                           an HTML page drawn behind the (usually
+//                                          TRANSPARENT) stack, inside the same
+//                                          widget — the animation composites over
+//                                          ordinary web content. Give a full URL.
 //
 // Design (door two of Three Livecode Doors): a livecode item loads and
 // displays its stack by default. BOOT click opts a widget into a light
@@ -20,8 +37,84 @@
 const ENGINE_MB = 6.4
 const SHARED_SHELL = 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html'
 
+// TRIPTYCH mode — generate the LiveCode scaffold for one engine drawing three
+// positioned, labelled columns. It clears the donor capsule's leftover controls
+// (8 hexagon parts on the boot card), reads its real size from the browser
+// window, and lays the columns out proportionally. Authors get three columns
+// with no hand-written LiveCode; behaviour can be layered on later.
+const triptychScript = (columns) => {
+  const cols = (Array.isArray(columns) && columns.length === 3) ? columns : ['Left', 'Centre', 'Right']
+  const lab = (s) => String(s).replace(/"/g, "'").replace(/[\r\n]/g, ' ')
+  return [
+    'script "Triptych"',
+    '',
+    'on preOpenStack',
+    '   buildTriptych',
+    'end preOpenStack',
+    'on startup',
+    '   buildTriptych',
+    'end startup',
+    'on openStack',
+    '   buildTriptych',
+    'end openStack',
+    '',
+    'local sBuilt',
+    '',
+    'command buildTriptych',
+    '   if sBuilt is true then exit buildTriptych',
+    '   put true into sBuilt',
+    '   repeat the number of controls of this card',
+    '      delete last control',
+    '   end repeat',
+    '   local tW, tH, p, zw',
+    '   put winWidth() into tW',
+    '   put winHeight() into tH',
+    '   set the rect of this stack to 0, 0, tW, tH',
+    '   set the backgroundColor of this card to "248,249,251"',
+    '   put 14 into p',
+    '   put trunc((tW - 4 * p) / 3) into zw',
+    `   makeColumn "col1", p, zw, tH, "${lab(cols[0])}", "225,235,252"`,
+    `   makeColumn "col2", p + zw + p, zw, tH, "${lab(cols[1])}", "255,248,232"`,
+    `   makeColumn "col3", p + 2 * (zw + p), zw, tH, "${lab(cols[2])}", "228,244,230"`,
+    'end buildTriptych',
+    '',
+    'command makeColumn pName, pX, pW, pH, pLabel, pColor',
+    '   create graphic pName',
+    '   set the style of graphic pName to "roundrect"',
+    '   set the rect of graphic pName to pX, 14, pX + pW, pH - 14',
+    '   set the opaque of graphic pName to true',
+    '   set the backgroundColor of graphic pName to pColor',
+    '   set the lineColor of graphic pName to "205,210,220"',
+    '   create field (pName & "L")',
+    '   set the rect of field (pName & "L") to pX, 22, pX + pW, 48',
+    '   set the textAlign of field (pName & "L") to "center"',
+    '   set the textSize of field (pName & "L") to 15',
+    '   set the borderWidth of field (pName & "L") to 0',
+    '   set the opaque of field (pName & "L") to false',
+    '   set the lockText of field (pName & "L") to true',
+    '   put pLabel into field (pName & "L")',
+    'end makeColumn',
+    '',
+    'function winWidth',
+    '   local w',
+    '   do "window.innerWidth" as "javascript"',
+    '   put the result into w',
+    '   if w is not a number or w < 200 then put 700 into w',
+    '   return w',
+    'end winWidth',
+    '',
+    'function winHeight',
+    '   local h',
+    '   do "window.innerHeight" as "javascript"',
+    '   put the result into h',
+    '   if h is not a number or h < 120 then put 340 into h',
+    '   return h',
+    'end winHeight'
+  ].join('\n')
+}
+
 export const parse = (text) => {
-  const spec = { stack: null, title: null, height: 420, boot: 'auto', fullscreen: 'fixed', name: null, script: null }
+  const spec = { stack: null, title: null, height: 420, width: null, triptych: false, columns: null, boot: 'auto', fullscreen: 'fixed', name: null, script: null, transparent: false, behind: null }
   const lines = (text || '').split('\n')
   for (let i = 0; i < lines.length; i++) {
     // a script-only stack begins `script "Name"` — everything from that
@@ -33,6 +126,11 @@ export const parse = (text) => {
       if (!spec.title) spec.title = sm[1]
       break
     }
+    // a bare TRIPTYCH line (no args) turns on turnkey mode with default labels
+    if (/^\s*TRIPTYCH\s*$/i.test(lines[i])) { spec.triptych = true; continue }
+    // a bare TRANSPARENT line renders the stack with a transparent background
+    // (opt-in ?bg=transparent on the shell) so anything behind shows through
+    if (/^\s*TRANSPARENT\s*$/i.test(lines[i])) { spec.transparent = true; continue }
     const m = lines[i].trim().match(/^([A-Z]+):?\s+(.*)$/)
     if (!m) continue
     const [, cmd, restRaw] = m
@@ -45,6 +143,22 @@ export const parse = (text) => {
       const mode = rest.toLowerCase()
       spec.fullscreen = ['fixed', 'scale', 'resize'].includes(mode) ? mode : 'fixed'
     } else if (cmd === 'NAME') spec.name = rest
+    else if (cmd === 'WIDTH') {
+      const v = rest.toLowerCase()
+      spec.width = (v === 'full' || v === 'page' || v === 'lineup') ? 'full' : (parseInt(rest, 10) || null)
+    }
+    else if (cmd === 'TRIPTYCH') {
+      spec.triptych = true
+      if (rest) spec.columns = rest.split('|').map((s) => s.trim()).filter(Boolean)
+    }
+    else if (cmd === 'COLUMNS') spec.columns = rest.split('|').map((s) => s.trim()).filter(Boolean)
+    else if (cmd === 'BEHIND') spec.behind = rest
+  }
+  // TRIPTYCH mode generates its own script-only stack from the column labels
+  if (spec.triptych && !spec.script) {
+    spec.script = triptychScript(spec.columns)
+    if (!spec.name) spec.name = 'Triptych'
+    if (!spec.title) spec.title = 'Triptych'
   }
   if (spec.script && !spec.stack) spec.stack = SHARED_SHELL
   if (!spec.title && spec.stack) {
@@ -72,7 +186,7 @@ const stopWidget = (widget) => {
   clearInterval(inst.watch)
   window.removeEventListener('message', inst.onMessage)
   document.removeEventListener('fullscreenchange', inst.onFsChange)
-  inst.frame.remove()
+  ;(inst.mount || inst.frame).remove()
   inst.bar.remove()
   inst.poster.style.display = ''
   widget.__livecode = null
@@ -88,6 +202,22 @@ const boot = (widget, poster, spec, url) => {
   }
   if (spec.script) {
     url += '&boot=script'
+  }
+  if (spec.transparent) {
+    url += '&bg=transparent'
+  }
+  // WIDTH full pulls the iframe to the viewport's left edge, so iframe x-coords
+  // equal viewport x-coords. Hand the stack the REAL lineup column geometry —
+  // one x:width pair per .page — so it can lay zones over the actual columns.
+  if (spec.width === 'full') {
+    const pages = [...document.querySelectorAll('.page')]
+    if (pages.length >= 2) {
+      const zones = pages.map((p) => {
+        const r = p.getBoundingClientRect()
+        return Math.round(r.left) + ':' + Math.round(r.width)
+      }).join(',')
+      url += '&zones=' + encodeURIComponent(zones)
+    }
   }
 
   const bar = document.createElement('div')
@@ -108,9 +238,62 @@ const boot = (widget, poster, spec, url) => {
   frame.src = url
   frame.setAttribute('allow', 'fullscreen')
   frame.setAttribute('allowfullscreen', '')
+  if (spec.transparent) frame.setAttribute('allowtransparency', 'true')
   frame.style.cssText =
-    `width:100%;height:${spec.height}px;border:1px solid #e0e0e0;` +
-    'border-radius:6px;background:#fff'
+    `width:100%;height:${spec.height}px;border-radius:6px;` +
+    (spec.transparent
+      ? 'border:0;background:transparent'
+      : 'border:1px solid #e0e0e0;background:#fff')
+
+  // BEHIND: render an HTML page behind a (usually transparent) stack, both
+  // inside one positioned stage, so the livecode animation composites over
+  // ordinary web content. Without BEHIND the frame mounts directly as before.
+  let mount = frame
+  if (spec.behind) {
+    const stage = document.createElement('div')
+    stage.className = 'livecode-stage'
+    stage.style.cssText =
+      `position:relative;width:100%;height:${spec.height}px;` +
+      'border-radius:6px;overflow:hidden'
+    const back = document.createElement('iframe')
+    back.className = 'livecode-behind'
+    back.src = spec.behind
+    back.setAttribute('scrolling', 'no')
+    back.style.cssText =
+      'position:absolute;inset:0;width:100%;height:100%;border:0;z-index:0'
+    frame.style.position = 'absolute'
+    frame.style.inset = '0'
+    frame.style.width = '100%'
+    frame.style.height = '100%'
+    frame.style.borderRadius = '0'
+    frame.style.zIndex = '1'
+    stage.appendChild(back)
+    stage.appendChild(frame)
+    mount = stage
+  }
+
+  // WIDTH: break the widget out of its fedwiki column so a triptych can span
+  // the page. 'full' is the classic full-bleed (100vw pulled to the viewport
+  // edge); a number widens to that many px. The stack sizes itself to the
+  // resulting window.innerWidth.
+  if (spec.width === 'full') {
+    mount.style.width = '100vw'
+    mount.style.maxWidth = '100vw'
+    // pull the mount to the viewport's LEFT EDGE exactly. The classic
+    // calc(50% - 50vw) only works when the parent is viewport-centred — inside
+    // a fedwiki column it is not, so measure and pull by the real offset. The
+    // zones param is in viewport coords, so iframe x MUST equal viewport x.
+    requestAnimationFrame(() => {
+      mount.style.marginLeft = '0px'
+      const left = mount.getBoundingClientRect().left
+      mount.style.marginLeft = (-left) + 'px'
+    })
+    widget.style.overflow = 'visible'
+  } else if (typeof spec.width === 'number') {
+    mount.style.width = spec.width + 'px'
+    mount.style.maxWidth = 'none'
+    widget.style.overflow = 'visible'
+  }
 
   const tell = (command) => {
     try {
@@ -143,12 +326,12 @@ const boot = (widget, poster, spec, url) => {
 
   poster.style.display = 'none'
   widget.appendChild(bar)
-  widget.appendChild(frame)
+  widget.appendChild(mount)
   bar.querySelector('.livecode-stop').addEventListener('click', () => stopWidget(widget))
   bar.querySelector('.livecode-full').addEventListener('click', () => {
     if (frame.requestFullscreen) frame.requestFullscreen()
   })
-  widget.__livecode = { poster, frame, bar, watch, onMessage, onFsChange }
+  widget.__livecode = { poster, frame, mount, bar, watch, onMessage, onFsChange }
 }
 
 // ---- fedwiki plugin surface -------------------------------------------
@@ -178,6 +361,7 @@ export const bind = (div, item) => {
   const widget = div.find('.livecode-widget')[0]
   const poster = div.find('.livecode-poster')[0]
   if (!spec.stack || !widget || !poster) return
+  if (spec.behind) spec.behind = resolveUrl(div, spec.behind)
   const url = resolveUrl(div, spec.stack)
   const start = (event) => {
     if (event) event.stopPropagation()

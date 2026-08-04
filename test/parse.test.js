@@ -8,11 +8,61 @@ test('full DSL parses', () => {
     stack: 'wasm/Hexagon/Hexagon.html',
     title: 'Hexagon',
     height: 640,
+    width: null,
+    triptych: false,
+    columns: null,
     boot: 'auto',
     fullscreen: 'scale',
     name: 'Hexagon',
     script: null,
+    transparent: false,
+    behind: null,
   })
+})
+
+test('TRANSPARENT and BEHIND parse', () => {
+  const spec = parse('HEIGHT 360\nTRANSPARENT\nBEHIND https://x/reef.html\nscript "Fish"\non openStack\nend openStack')
+  assert.equal(spec.transparent, true)
+  assert.equal(spec.behind, 'https://x/reef.html')
+  assert.equal(spec.name, 'Fish')
+  assert.ok(spec.script.startsWith('script "Fish"'))
+})
+
+test('transparent defaults off, behind defaults null', () => {
+  const spec = parse('STACK a.html')
+  assert.equal(spec.transparent, false)
+  assert.equal(spec.behind, null)
+})
+
+test('WIDTH parses full and pixel values', () => {
+  assert.equal(parse('STACK a.html\nWIDTH full').width, 'full')
+  assert.equal(parse('STACK a.html\nWIDTH 840').width, 840)
+  assert.equal(parse('STACK a.html').width, null)
+})
+
+test('TRIPTYCH mode generates a three-column script', () => {
+  const spec = parse('TRIPTYCH Strengths | Proposal | Weaknesses')
+  assert.equal(spec.triptych, true)
+  assert.deepEqual(spec.columns, ['Strengths', 'Proposal', 'Weaknesses'])
+  assert.equal(spec.name, 'Triptych')
+  assert.equal(spec.stack, 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html')
+  assert.ok(spec.script.startsWith('script "Triptych"'))
+  assert.ok(spec.script.includes('"Strengths"'))
+  assert.ok(spec.script.includes('buildTriptych'))
+})
+
+test('bare TRIPTYCH uses default column labels', () => {
+  const spec = parse('TRIPTYCH')
+  assert.equal(spec.triptych, true)
+  assert.ok(spec.script.includes('"Left"'))
+  assert.ok(spec.script.includes('"Centre"'))
+  assert.ok(spec.script.includes('"Right"'))
+})
+
+test('COLUMNS sets the labels for TRIPTYCH', () => {
+  const spec = parse('TRIPTYCH\nCOLUMNS Before | Now | After')
+  assert.deepEqual(spec.columns, ['Before', 'Now', 'After'])
+  assert.ok(spec.script.includes('"Before"'))
 })
 
 test('fullscreen defaults to fixed and rejects junk modes', () => {

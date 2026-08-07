@@ -114,3 +114,15 @@ test('commands before the script line still apply', () => {
   assert.equal(spec.name, 'X')
   assert.ok(spec.script.startsWith('script "X"'))
 })
+
+test('TRIPTYCH defaults the shell to resize mode', () => {
+  const spec = parse('TRIPTYCH a | b | c')
+  assert.equal(spec.fullscreen, 'resize')
+  assert.ok(spec.script.includes('on resizeStack'))
+  assert.ok(spec.script.includes('set the resizable of this stack to true'))
+})
+
+test('explicit FULLSCREEN wins over the TRIPTYCH resize default', () => {
+  const spec = parse('FULLSCREEN fixed\nTRIPTYCH a | b | c')
+  assert.equal(spec.fullscreen, 'fixed')
+})

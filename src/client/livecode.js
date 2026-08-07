@@ -70,6 +70,7 @@ const triptychScript = (columns) => {
     '   put winWidth() into tW',
     '   put winHeight() into tH',
     '   set the rect of this stack to 0, 0, tW, tH',
+    '   set the resizable of this stack to true',
     '   set the backgroundColor of this card to "248,249,251"',
     '   put 14 into p',
     '   put trunc((tW - 4 * p) / 3) into zw',
@@ -77,6 +78,26 @@ const triptychScript = (columns) => {
     `   makeColumn "col2", p + zw + p, zw, tH, "${lab(cols[1])}", "255,248,232"`,
     `   makeColumn "col3", p + 2 * (zw + p), zw, tH, "${lab(cols[2])}", "228,244,230"`,
     'end buildTriptych',
+    '',
+    'on resizeStack pW, pH',
+    '   if sBuilt is true then',
+    '      layoutTriptych pW, pH',
+    '   end if',
+    'end resizeStack',
+    '',
+    'command layoutTriptych tW, tH',
+    '   local p, zw',
+    '   put 14 into p',
+    '   put trunc((tW - 4 * p) / 3) into zw',
+    '   layoutColumn "col1", p, zw, tH',
+    '   layoutColumn "col2", p + zw + p, zw, tH',
+    '   layoutColumn "col3", p + 2 * (zw + p), zw, tH',
+    'end layoutTriptych',
+    '',
+    'command layoutColumn pName, pX, pW, pH',
+    '   set the rect of graphic pName to pX, 14, pX + pW, pH - 14',
+    '   set the rect of field (pName & "L") to pX, 22, pX + pW, 48',
+    'end layoutColumn',
     '',
     'command makeColumn pName, pX, pW, pH, pLabel, pColor',
     '   create graphic pName',
@@ -115,6 +136,7 @@ const triptychScript = (columns) => {
 
 export const parse = (text) => {
   const spec = { stack: null, title: null, height: 420, width: null, triptych: false, columns: null, boot: 'auto', fullscreen: 'fixed', name: null, script: null, transparent: false, behind: null }
+  let fsExplicit = false
   const lines = (text || '').split('\n')
   for (let i = 0; i < lines.length; i++) {
     // a script-only stack begins `script "Name"` — everything from that
@@ -142,6 +164,7 @@ export const parse = (text) => {
     else if (cmd === 'FULLSCREEN') {
       const mode = rest.toLowerCase()
       spec.fullscreen = ['fixed', 'scale', 'resize'].includes(mode) ? mode : 'fixed'
+      fsExplicit = true
     } else if (cmd === 'NAME') spec.name = rest
     else if (cmd === 'WIDTH') {
       const v = rest.toLowerCase()
@@ -154,11 +177,14 @@ export const parse = (text) => {
     else if (cmd === 'COLUMNS') spec.columns = rest.split('|').map((s) => s.trim()).filter(Boolean)
     else if (cmd === 'BEHIND') spec.behind = rest
   }
-  // TRIPTYCH mode generates its own script-only stack from the column labels
+  // TRIPTYCH mode generates its own script-only stack from the column labels;
+  // it lays out on resizeStack, so default the shell to resize mode (the
+  // fixed default would swallow the window resizes that drive it)
   if (spec.triptych && !spec.script) {
     spec.script = triptychScript(spec.columns)
     if (!spec.name) spec.name = 'Triptych'
     if (!spec.title) spec.title = 'Triptych'
+    if (!fsExplicit) spec.fullscreen = 'resize'
   }
   if (spec.script && !spec.stack) spec.stack = SHARED_SHELL
   if (!spec.title && spec.stack) {

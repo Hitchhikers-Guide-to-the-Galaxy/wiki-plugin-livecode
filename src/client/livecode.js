@@ -212,6 +212,7 @@ const stopWidget = (widget) => {
   clearInterval(inst.watch)
   window.removeEventListener('message', inst.onMessage)
   document.removeEventListener('fullscreenchange', inst.onFsChange)
+  if (inst.onResize) window.removeEventListener('resize', inst.onResize)
   ;(inst.mount || inst.frame).remove()
   inst.bar.remove()
   inst.poster.style.display = ''
@@ -345,6 +346,35 @@ const boot = (widget, poster, spec, url) => {
   }
   document.addEventListener('fullscreenchange', onFsChange)
 
+  // parent-side resize: the WIDTH full margin-pull and the zones string are
+  // both viewport-relative, so a window resize goes stale without this. The
+  // shell mirrors zones into window.__wikiZones; the stack pulls it fresh
+  // from its own resizeStack.
+  let resizeTimer = null
+  const onResize = () => {
+    if (!widget.__livecode) return
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => {
+      if (!widget.__livecode) return
+      if (spec.width === 'full') {
+        mount.style.marginLeft = '0px'
+        const left = mount.getBoundingClientRect().left
+        mount.style.marginLeft = (-left) + 'px'
+      }
+      const pages = Array.from(document.querySelectorAll('.page'))
+      if (pages.length >= 2) {
+        const zones = pages.map((p) => {
+          const r = p.getBoundingClientRect()
+          return Math.round(r.left) + ':' + Math.round(r.width)
+        }).join(',')
+        try {
+          frame.contentWindow.postMessage({ livecode: { command: 'zones', zones } }, '*')
+        } catch (e) { /* frame gone */ }
+      }
+    }, 150)
+  }
+  window.addEventListener('resize', onResize)
+
   // watchdog: fedwiki never tells a plugin its item left the lineup
   const watch = setInterval(() => {
     if (!document.body.contains(widget)) stopWidget(widget)
@@ -357,7 +387,7 @@ const boot = (widget, poster, spec, url) => {
   bar.querySelector('.livecode-full').addEventListener('click', () => {
     if (frame.requestFullscreen) frame.requestFullscreen()
   })
-  widget.__livecode = { poster, frame, mount, bar, watch, onMessage, onFsChange }
+  widget.__livecode = { poster, frame, mount, bar, watch, onMessage, onFsChange, onResize }
 }
 
 // ---- fedwiki plugin surface -------------------------------------------

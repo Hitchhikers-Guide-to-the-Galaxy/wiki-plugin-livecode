@@ -5,7 +5,7 @@ import { parse } from '../src/client/livecode.js'
 test('full DSL parses', () => {
   const spec = parse('STACK wasm/Hexagon/Hexagon.html\nTITLE Hexagon\nHEIGHT 640\nBOOT auto\nFULLSCREEN scale\nNAME Hexagon')
   assert.deepEqual(spec, {
-    stack: 'wasm/Hexagon/Hexagon.html',
+    engine: 'wasm/Hexagon/Hexagon.html',
     title: 'Hexagon',
     height: 640,
     width: null,
@@ -17,7 +17,35 @@ test('full DSL parses', () => {
     script: null,
     transparent: false,
     behind: null,
+    zone: null,
   })
+})
+
+test('ZONE parses name and defaults to a shallow box', () => {
+  const spec = parse('ZONE left')
+  assert.equal(spec.zone, 'left')
+  assert.equal(spec.height, 200)
+  assert.equal(spec.engine, null)
+  assert.equal(spec.title, 'left')
+})
+
+test('ZONE with HEIGHT overrides the default', () => {
+  const spec = parse('ZONE centre\nHEIGHT 360')
+  assert.equal(spec.zone, 'centre')
+  assert.equal(spec.height, 360)
+})
+
+test('ZONE beats STACK, script and TRIPTYCH', () => {
+  const spec = parse('STACK a.html\nZONE right\nTRIPTYCH\nscript "X"\non openstack\nend openstack')
+  assert.equal(spec.zone, 'right')
+  assert.equal(spec.engine, null)
+  assert.equal(spec.script, null)
+  assert.equal(spec.triptych, false)
+})
+
+test('ZONE names are sanitised for the wire format', () => {
+  assert.equal(parse('ZONE a:b,c').zone, 'abc')
+  assert.equal(parse('ZONE :,').zone, 'zone')
 })
 
 test('TRANSPARENT and BEHIND parse', () => {
@@ -45,7 +73,7 @@ test('TRIPTYCH mode generates a three-column script', () => {
   assert.equal(spec.triptych, true)
   assert.deepEqual(spec.columns, ['Strengths', 'Proposal', 'Weaknesses'])
   assert.equal(spec.name, 'Triptych')
-  assert.equal(spec.stack, 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html')
+  assert.equal(spec.engine, 'https://wasm.livecode.wiki/assets/wasm/v11/stack.html')
   assert.ok(spec.script.startsWith('script "Triptych"'))
   assert.ok(spec.script.includes('"Strengths"'))
   assert.ok(spec.script.includes('buildTriptych'))
@@ -90,13 +118,13 @@ test('BOOT click opts into the collapsible poster', () => {
 
 test('optional colon and junk lines tolerated', () => {
   const spec = parse('STACK: wasm/Panel/Panel.html\nnot a command\nHEIGHT: abc')
-  assert.equal(spec.stack, 'wasm/Panel/Panel.html')
+  assert.equal(spec.engine, 'wasm/Panel/Panel.html')
   assert.equal(spec.height, 420)
 })
 
-test('empty text yields no stack', () => {
-  assert.equal(parse('').stack, null)
-  assert.equal(parse(undefined).stack, null)
+test('empty text yields no engine', () => {
+  assert.equal(parse('').engine, null)
+  assert.equal(parse(undefined).engine, null)
 })
 
 test('script only stack text is detected', () => {
@@ -104,7 +132,7 @@ test('script only stack text is detected', () => {
   assert.equal(spec.name, 'Simple Test')
   assert.equal(spec.title, 'Simple Test')
   assert.ok(spec.script.startsWith('script "Simple Test"'))
-  assert.equal(spec.stack, 'https://wasm.livecode.wiki/assets/wasm/shared/stack.html')
+  assert.equal(spec.engine, 'https://wasm.livecode.wiki/assets/wasm/v11/stack.html')
 })
 
 test('commands before the script line still apply', () => {
@@ -125,4 +153,19 @@ test('TRIPTYCH defaults the shell to resize mode', () => {
 test('explicit FULLSCREEN wins over the TRIPTYCH resize default', () => {
   const spec = parse('FULLSCREEN fixed\nTRIPTYCH a | b | c')
   assert.equal(spec.fullscreen, 'fixed')
+})
+
+test('ENGINE is the directive and STACK is a legacy alias for it', () => {
+  assert.equal(parse('ENGINE wasm/v11/stack.html').engine, 'wasm/v11/stack.html')
+  assert.equal(parse('STACK wasm/v11/stack.html').engine, 'wasm/v11/stack.html')
+})
+
+test('ENGINE wins when both are given', () => {
+  const spec = parse('STACK old.html\nENGINE new.html')
+  assert.equal(spec.engine, 'new.html')
+})
+
+test('the frozen v10 archive still resolves through the legacy alias', () => {
+  const spec = parse('STACK http://v10.demo.localhost/assets/wasm/shared/stack.html\nscript "Triptych"\non openStack\nend openStack')
+  assert.equal(spec.engine, 'http://v10.demo.localhost/assets/wasm/shared/stack.html')
 })
